@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictionary Search Results</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        h2, h3, h4 {
+            color: #2c3e50;
+        }
+
+        h2 {
+            margin-top: 20px;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            font-size: 1.8em;
+            color: #34495e;
+        }
+
+        .word-box {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px auto;
+            width: 60%;
+            text-align: left;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .word-box h3 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .word-box h4 {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .word-box p {
+            font-size: 16px;
+            color: #555;
+        }
+
+        .word-box button {
+            padding: 8px 16px;
+            background-color: #28a745;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .word-box button:hover {
+            background-color: #218838;
+        }
+
+        .word-box ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .word-box li {
+            font-size: 16px;
+            color: #555;
+        }
+
+        input {
+            padding: 12px;
+            width: 50%;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #27ae60;
+        }
+
+        .synonyms, .antonyms {
+            padding-left: 20px;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+
+        .synonyms ul, .antonyms ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .synonyms li, .antonyms li {
+            background-color: #ecf0f1;
+            padding: 5px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+
+        /* Speed Control Styles */
+        #speedControl {
+            width: 50%;
+            margin: 20px 0;
+        }
+
+        .speed-wrapper {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .speed-wrapper p {
+            color: #2ecc71;
+        }
+
+        .speed-wrapper input {
+            margin-right: 10px;
+        }
+
+        /* Recent Searches Styles */
+        .recent-searches {
+            margin-top: 40px;
+            padding: 10px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            width: 60%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .recent-searches ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .recent-searches li {
+            font-size: 16px;
+            color: #555;
+            padding: 10px;
+            background-color: #ecf0f1;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+  <h2>Dictionary Search</h2>
+
+  <!-- Day/Night Mode Toggle -->
+  <button id="themeToggle" style="margin-bottom: 10px; padding: 6px 12px; cursor: pointer;">Toggle Day/Night Mode</button>
+
+  {% if user.is_authenticated %}
+    <p>Welcome, {{ user.username }}! <a href="{% url 'logout' %}">Logout</a></p>
+  {% else %}
+    <p><a href="{% url 'login' %}">Login</a> | <a href="{% url 'signup' %}">Sign Up</a></p>
+  {% endif %}
+
+  <form method="GET" autocomplete="off">
+    <input type="text" id="searchInput" name="q" placeholder="Enter a word" value="{{ query }}" required>
+    <select name="language" id="languageSelect" style="margin-left: 10px; padding: 6px; font-size: 16px; -webkit-appearance: none; -moz-appearance: none; appearance: none; border: none; background: transparent; cursor: default;">
+      <option value="en" {% if language == 'en' %}selected{% endif %}>English</option>
+    </select>
+    <button type="submit" style="margin-left: 10px;">Search</button>
+  </form>
+
+  <ul id="suggestionsList" style="list-style:none; padding:0; margin:0 auto; width: 50%; max-width: 300px; background: white; border: 1px solid #ddd; border-radius: 4px; position: absolute; z-index: 1000; display: none;"></ul>
+
+  {% if query %}
+    <h3>Results for: "{{ query }}"</h3>
+
+    {% if error_message %}
+      <p style="color: red; font-weight: bold;">{{ error_message }}</p>
+    {% endif %}
+
+    {% if word_data %}
+    <div class="word-box">
+        <h3>{{ word_data.0.word }}</h3> <!-- Use .0 to access the first element -->
+        <button type="button" onclick="speakWord('{{ word_data.0.word }}')">Pronounce</button>
+
+        {% for meaning in word_data.0.meanings %}
+            <h4>Part of Speech: {{ meaning.partOfSpeech }}</h4>
+            {% for definition in meaning.definitions %}
+                <p><strong>Definition:</strong> {{ definition.definition }}</p>
+                {% if definition.example %}
+                    <p><strong>Example:</strong> {{ definition.example }}</p>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    {% if linguistic_features %}
+    <div class="word-box">
+        <h4>Linguistic Features</h4>
+        <ul>
+            {% for feature in linguistic_features %}
+                <li><strong>{{ feature.feature_name }}:</strong> {{ feature.feature_value }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if synonyms %}
+        <div class="synonyms">
+            <h4><strong>Synonyms:</strong></h4>
+            <ul>
+                {% for synonym in synonyms %}
+                    <li>{{ synonym }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% elif synonyms|length == 0 %}
+        <p>No synonyms available.</p>
+    {% endif %}
+
+    {% if antonyms %}
+        <div class="antonyms">
+            <h4><strong>Antonyms:</strong></h4>
+            <ul>
+                {% for antonym in antonyms %}
+                    <li>{{ antonym }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% elif antonyms|length == 0 %}
+        <p>No antonyms available.</p>
+    {% endif %}
+  {% endif %}
+
+  <!-- Speed Control -->
+  <div class="speed-wrapper">
+      <label for="speedControl">Set Speed:</label>
+      <input type="range" id="speedControl" min="0.5" max="2" step="0.1" value="1" onchange="updateSpeed(this.value)">
+      <p>Speed: <span id="speedValue">1</span>x</p>
+  </div>
+
+  <!-- Recent Searches -->
+  {% if user.is_authenticated %}
+    <div class="recent-searches">
+        <h3>Recent Searches</h3>
+        <ul>
+            {% for search in recent_searches %}
+                <li>{{ search.word }} ({{ search.search_time|date:"M d" }})</li>
+            {% empty %}
+                <li>No recent searches.</li>
+            {% endfor %}
+        </ul>
+    </div>
+  {% endif %}
+
+  <script>
+    let speed = 1;
+
+    // Update the speed value from the range slider
+    function updateSpeed(value) {
+        speed = value;
+        document.getElementById("speedValue").innerText = value;
+    }
+
+    // Function to speak the word
+    function speakWord(word) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.rate = speed; // Set speed from slider
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert("Sorry, your browser does not support speech synthesis.");
+        }
+    }
+
+    // Autocomplete feature
+    const searchInput = document.getElementById('searchInput');
+    const suggestionsList = document.getElementById('suggestionsList');
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        if (query.length === 0) {
+            suggestionsList.style.display = 'none';
+            suggestionsList.innerHTML = '';
+            return;
+        }
+
+        fetch(`{% url 'autocomplete' %}?q=${encodeURIComponent(query)}`)
+            .then(response => {
+                console.log('Autocomplete response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Autocomplete data:', data);
+                suggestionsList.innerHTML = '';
+                if (data.length === 0) {
+                    suggestionsList.style.display = 'none';
+                    return;
+                }
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    li.style.padding = '8px';
+                    li.style.cursor = 'pointer';
+                    li.addEventListener('click', () => {
+                        searchInput.value = item;
+                        suggestionsList.style.display = 'none';
+                        suggestionsList.innerHTML = '';
+                    });
+                    suggestionsList.appendChild(li);
+                });
+                suggestionsList.style.display = 'block';
+            })
+            .catch(() => {
+                suggestionsList.style.display = 'none';
+                suggestionsList.innerHTML = '';
+            });
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (event) => {
+        if (!suggestionsList.contains(event.target) && event.target !== searchInput) {
+            suggestionsList.style.display = 'none';
+            suggestionsList.innerHTML = '';
+        }
+    });
+  </script>
+
+  <script>
+    // Day/Night Mode Toggle Script
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('theme') || 'day';
+
+    function applyTheme(theme) {
+      if (theme === 'night') {
+        document.body.classList.add('night-mode');
+      } else {
+        document.body.classList.remove('night-mode');
+      }
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      const newTheme = document.body.classList.contains('night-mode') ? 'day' : 'night';
+      applyTheme(newTheme);
+      localStorage.setItem('theme', newTheme);
+    });
+
+    // Apply saved theme on page load
+    applyTheme(currentTheme);
+  </script>
+
+  <style>
+    /* Night mode styles */
+    .night-mode {
+      background-color: #121212 !important;
+      color: #e0e0e0 !important;
+    }
+
+    .night-mode h2, .night-mode h3, .night-mode h4 {
+      color: #e0e0e0 !important;
+    }
+
+    .night-mode .word-box {
+      background-color: #1e1e1e !important;
+      border-color: #333 !important;
+      box-shadow: none !important;
+    }
+
+    .night-mode .word-box h3, .night-mode .word-box h4, .night-mode .word-box p {
+      color: #e0e0e0 !important;
+    }
+
+    .night-mode .synonyms li, .night-mode .antonyms li, .night-mode .recent-searches li {
+      background-color: #2c2c2c !important;
+      color: #e0e0e0 !important;
+    }
+
+    .night-mode .recent-searches {
+      background-color: #1e1e1e !important;
+      box-shadow: none !important;
+    }
+
+    .night-mode button, .night-mode .word-box button {
+      background-color: #444 !important;
+      color: #e0e0e0 !important;
+    }
+
+    .night-mode button:hover, .night-mode .word-box button:hover {
+      background-color: #666 !important;
+    }
+
+    .night-mode input, .night-mode input[type="text"] {
+      background-color: #2c2c2c !important;
+      color: #e0e0e0 !important;
+      border-color: #555 !important;
+    }
+  </style>
+
+</body>
+</html>
