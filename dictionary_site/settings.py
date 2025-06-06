@@ -25,7 +25,9 @@ SECRET_KEY = 'django-insecure-@((6o-p_-kebt6@!rvcm8t$uv@@cx%*c#rzz*pz(p=grmhzlx@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['worddict-website.onrender.com', 'localhost', '127.0.0.1']
+
+
 
 
 
@@ -126,9 +128,7 @@ USE_I18N = True
 
 LANGUAGES = [
     ('en', 'English'),
-    ('es', 'Spanish'),
-    ('fr', 'French'),
-    ('hi', 'Hindi'),
+   
 ]
 
 
@@ -139,6 +139,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+import os 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
