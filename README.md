@@ -16,3 +16,6 @@ This is a Django-powered Dictionary Website where users can search for word mean
 ## 🚀 How to Run
 ```bash
 python manage.py runserver
+
+
+LIVE URL: https://worddict-website.onrender.com/
